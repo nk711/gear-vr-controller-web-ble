@@ -2,70 +2,81 @@ import {
   TIMESTAMP_FACTOR,
   ACCEL_FACTOR,
   GYRO_FACTOR,
+  COMMAND,
+  SERVICE
 } from "../../utils/Constants";
+
 import {
   getAccelerometerFloatWithOffsetFromArrayBufferAtIndex,
   getGyroscopeFloatWithOffsetFromArrayBufferAtIndex,
   getLittleEndianUint8Array,
   getMagnetometerFloatWithOffsetFromArrayBufferAtIndex,
 } from "../../utils/Utils";
-import { COMMAND, Controller, SERVICE } from "./types";
+import { Controller } from "./types";
 
 // Initialises Bluetooth connection with controller
-export const initBluetooth = async (): Promise<Controller> => {
-  try {
+export const initBluetooth = async (setController: React.Dispatch<React.SetStateAction<Controller>>) => {
+  console.log('start')
+  // try {
     const gear_controller = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: [SERVICE.PRIMARY_UUID],
     });
-    console.log('1')
+    gear_controller.addEventListener('gattserverdisconnected', () => onDeviceDisconnected(setController));
     // gear_controller.addEventListener('gattserverdisconnected', onDeviceDisconnected); <- onDeviceDisconnected not defined
     const gattServer = await gear_controller.gatt!.connect();
-    console.log('2')
 
     const customService = await gattServer.getPrimaryService(
       SERVICE.PRIMARY_UUID
     );
-
-    console.log('3')
-
     // todo: battery service, device information service
     const customServiceWrite = await customService.getCharacteristic(
       SERVICE.WRITE_UUID
     );
 
-    console.log('4')
-
     const customServiceNotify = await customService.getCharacteristic(
       SERVICE.NOTIFY_UUID
     );
 
-    console.log('5')
     console.log('Primary', SERVICE.PRIMARY_UUID)
     console.log('Notify', SERVICE.NOTIFY_UUID)
     console.log('Write', SERVICE.WRITE_UUID)
-    await customServiceNotify.startNotifications();
 
-    console.log('6')
+    try {
+      if (gear_controller.gatt?.connected) {
+        await customServiceNotify.startNotifications();
+
+      } else {
+        console.log('not connected')
+      }
+    } catch (notificationError) {
+      console.error("Error starting notifications:", notificationError);
+    }
 
     customServiceNotify.addEventListener(
       "characteristicvaluechanged",
       onNotificationReceived
     );
 
-    console.log('7')
-
-    return {
+    setController({
       gattServer,
       customService,
       customServiceWrite,
       customServiceNotify,
-    };
-  } catch (error) {
-    console.error("Bluetooth error:", error);
-    return undefined;
-  }
+    });
+  // } catch (error: any) {
+  //   throw new Error("Bluetooth error:", error);
+  // }
 };
+
+// Function to handle device disconnection
+export const onDeviceDisconnected = (setController: React.Dispatch<React.SetStateAction<Controller>>) => {
+  console.log("Bluetooth device disconnected",);
+  // setTimeout(()=>{ Cannot initiate a bluetooth connection without a user gesture
+  //   initBluetooth(setController);
+  // }, 3000)
+};
+
 
 // Retrieves updates from controller
 export const onNotificationReceived = (e: Event) => {

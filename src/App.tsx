@@ -2,27 +2,27 @@ import { ChangeEvent, useState } from "react";
 import "./App.css";
 import {
   initBluetooth,
-  onNotificationReceived,
   runCommand
 } from "./components/Bluetooth";
-import { COMMAND, Controller } from "./components/Bluetooth/types";
+import { Controller } from "./components/Bluetooth/types";
+import { COMMAND } from "./utils/Constants";
 
 const App = () => {
   const [controller, setController] = useState<Controller>(undefined);
   const [option, setOption] = useState<COMMAND>();
   
   const connect = async () => {
-    try {
-      const controller = await initBluetooth();
-      if (controller === undefined) throw new Error("Controller undefined");
-      await controller.customServiceNotify.startNotifications();
-      controller.customServiceNotify.addEventListener(
-        "characteristicvaluechanged",
-        onNotificationReceived
-      );
-      console.log("Connected to the controller.");
-      setController(controller);
-    } catch (e) {}
+    // try
+      // const controller = await initBluetooth(setController);
+      // if (controller === undefined) throw new Error("Controller undefined");
+      // console.log("Connected to the controller.");
+      // setController(controller);
+
+    await initBluetooth(setController);
+
+    // } catch (e) {
+    //   console.log(e)
+    // }
   };
 
   const disconnect = () => {
